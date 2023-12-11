@@ -43,10 +43,8 @@ int main(int argc, char* argv[]) {
     int num_pages = mem_size * 1024 / frame_size;
     int* rp_array = createPhysicalMemory(num_pages); 
 
-    int time2 = 0;
-
     // Setting shift necessary to obtain page number
-    shift = getShift(frame_size);
+    shift = getShift(frame_size);   
 
     // Creating virtual table
     virtualTable* virtual_table = createVirtualTable(ADDRESS_SIZE - shift);
@@ -117,15 +115,14 @@ int main(int argc, char* argv[]) {
     }
     
     
-    printf("Executando o simulador...\n"
-    "Arquivo de entrada: %s\n"
-    "Quantidade de linhas: %d\n"
-    "Tamanho da memoria fisica: %d MB\n"
-    "Tamanho das páginas: %d KB\n"
-    "Algoritmo de substituição: %s\n"
+    printf("Executando o Simulador...\n"
+    "Arquivo de Entrada: %s\n"
+    "Tamanho da Memória Fisica: %d MB\n"
+    "Tamanho das Páginas: %d KB\n"
+    "Algoritmo de Substituição: %s\n"
     "Número de Faltas de Páginas: %d\n"
     "Número de Páginas Escritas: %d\n",
-    argv[2], time, mem_size, frame_size, algorithm, page_faults, pages_written);
+    argv[2], mem_size, frame_size, algorithm, page_faults, pages_written);
     
 
     // closing file
@@ -200,13 +197,13 @@ int getShift(int frame_size) {
     Least-Recently Used
     Returns the virtual page index that will be removed
 */
-int LRU(virtualTable* virtual_table, int* rp_array, int num_real_pages) {
+int LRU(virtualTable* virtual_table, int* rp_array, int num_pages) {
 
     int index_removed = rp_array[0];
 
     int indexVT;
     // Searching for virtual page to be replaced from memory
-    for (int i = 1; i < num_real_pages; i++) {
+    for (int i = 1; i < num_pages; i++) {
         indexVT = rp_array[i];
 
         if (virtual_table[indexVT].last_access < virtual_table[index_removed].last_access) {
@@ -224,23 +221,43 @@ int LRU(virtualTable* virtual_table, int* rp_array, int num_real_pages) {
 */
 int NRU(virtualTable* virtual_table, int* rp_array, int num_real_pages) {
 
-    int index_nRM, index_RnM, index_RM;
-    int indexVT;
+    int nRnM[num_real_pages], nRM[num_real_pages],
+        RnM[num_real_pages], RM[num_real_pages];
+    int index_nRnM, index_nRM, index_RnM, index_RM;
+    int indexVT, index_removed;
 
-    index_nRM = index_RnM = index_RM = -1;
 
-    for (int i = 0; i < num_real_pages; i++) {
+    index_nRnM = index_nRM = index_RnM = index_RM = 0;
+    nRnM[0] = nRM[0] = RnM[0] = RM[0] = -1;
+
+
+    for (int i = 1; i < num_real_pages; i++) {
         indexVT = rp_array[i];
 
-        if (virtual_table[indexVT].R == 0 && virtual_table[indexVT].M == 0)      return indexVT;
-        else if (virtual_table[indexVT].R == 0 && virtual_table[indexVT].M == 1) index_nRM = indexVT;
-        else if (virtual_table[indexVT].R == 1 && virtual_table[indexVT].M == 0) index_RnM = indexVT;
-        else if (virtual_table[indexVT].R == 1 && virtual_table[indexVT].M == 1) index_RM  = indexVT;
+        if (virtual_table[indexVT].R == 0 && virtual_table[indexVT].M == 0) {
+             nRnM[index_nRnM] = indexVT; 
+             index_nRnM++;
+        }
+        else if (virtual_table[indexVT].R == 0 && virtual_table[indexVT].M == 1) {
+            nRM[index_nRM] = indexVT;
+            index_nRM++;
+        }
+        else if (virtual_table[indexVT].R == 1 && virtual_table[indexVT].M == 0) {
+            RnM[index_RnM] = indexVT;
+            index_RnM++;
+        }
+        else if (virtual_table[indexVT].R == 1 && virtual_table[indexVT].M == 1) {
+            RM[index_RM] = indexVT;
+            index_RM++;
+        }
     }
 
-    if (index_nRM != -1) return index_nRM;
-    if (index_RnM != -1) return index_RnM;
-    if (index_RM != -1)  return index_RM;
+    if (nRnM[0] != -1)     index_removed = LRU(virtual_table, nRnM, index_nRnM);
+    else if (nRM[0] != -1) index_removed = LRU(virtual_table, nRM, index_nRM);
+    else if (RnM[0] != -1) index_removed = LRU(virtual_table, RnM, index_RnM);
+    else if (RM[0] != -1)  index_removed = LRU(virtual_table, RM, index_RM);
+
+    return index_removed;
 
 }
 

@@ -1,4 +1,4 @@
 all:
 	clear
 	gcc -o sim-virtual sim-virtual.c -lm
-	./sim-virtual NRU matriz.log 8 4
+	./sim-virtual LRU matriz.log 8 4
