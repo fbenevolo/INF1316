@@ -43,6 +43,8 @@ int main(int argc, char* argv[]) {
     int num_pages = mem_size * 1024 / frame_size;
     int* rp_array = createPhysicalMemory(num_pages); 
 
+    int time2 = 0;
+
     // Setting shift necessary to obtain page number
     shift = getShift(frame_size);
 
@@ -61,6 +63,11 @@ int main(int argc, char* argv[]) {
         fscanf(log_file, "%x %c\n", &addr, &rw);
         
         pg_index = addr >> shift;
+
+        // Time to set reference bits to zero
+        if (time % num_pages == 0 && strcmp(algorithm, "NRU") == 0) {
+            setReferenceBitsToZero(virtual_table, rp_array, num_pages);
+        }
         
         // if page is not in memory
         if (virtual_table[pg_index].mem_page == -1) {
@@ -82,7 +89,6 @@ int main(int argc, char* argv[]) {
                 }
                 else if (strcmp(algorithm, "LRU") == 0) {
                     removed_page = LRU(virtual_table, rp_array, num_pages);
-
                 }
 
                 // If page was modified, writes it back in the disk
@@ -107,8 +113,7 @@ int main(int argc, char* argv[]) {
         virtual_table[pg_index].last_access = time;
         if (rw == 'W') virtual_table[pg_index].M = 1; 
 
-        time++;
-        
+        time++; 
     }
     
     
@@ -193,7 +198,7 @@ int getShift(int frame_size) {
 
 /*
     Least-Recently Used
-    Returns the virtual page index
+    Returns the virtual page index that will be removed
 */
 int LRU(virtualTable* virtual_table, int* rp_array, int num_real_pages) {
 
@@ -215,10 +220,43 @@ int LRU(virtualTable* virtual_table, int* rp_array, int num_real_pages) {
 
 /*
     Not-Recently-Used
+    Returns the virtual page index that will be removed
 */
 int NRU(virtualTable* virtual_table, int* rp_array, int num_real_pages) {
 
-    int index;
+    int index_nRM, index_RnM, index_RM;
+    int indexVT;
 
-    return index;
+    index_nRM = index_RnM = index_RM = -1;
+
+    for (int i = 0; i < num_real_pages; i++) {
+        indexVT = rp_array[i];
+
+        if (virtual_table[indexVT].R == 0 && virtual_table[indexVT].M == 0)      return indexVT;
+        else if (virtual_table[indexVT].R == 0 && virtual_table[indexVT].M == 1) index_nRM = indexVT;
+        else if (virtual_table[indexVT].R == 1 && virtual_table[indexVT].M == 0) index_RnM = indexVT;
+        else if (virtual_table[indexVT].R == 1 && virtual_table[indexVT].M == 1) index_RM  = indexVT;
+    }
+
+    if (index_nRM != -1) return index_nRM;
+    if (index_RnM != -1) return index_RnM;
+    if (index_RM != -1)  return index_RM;
+
+}
+
+
+/*
+    Auxiliary function that set 
+    reference bits of pages 
+    that are in memory to zero
+*/
+void setReferenceBitsToZero(virtualTable* virtual_table, int* rp_array, int num_real_pages) {
+
+    int virtual_index;
+    for (int i = 0; i < num_real_pages; i++) {
+        virtual_index = rp_array[i];
+        if (virtual_index != -1) virtual_table[virtual_index].R = 0;
+    }
+
+    return;
 }

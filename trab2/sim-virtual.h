@@ -15,9 +15,10 @@ struct virtualTable {
 } typedef virtualTable;
 
 
+int getShift(int frame_size);
 int* createPhysicalMemory(int num_pages);
 virtualTable* createVirtualTable(int num_pages);
-int getShift(int frame_size);
+void setReferenceBitsToZero(virtualTable* virtual_table, int* rp_array, int num_real_pages);
 
 // replace page algorithms
 int LRU(virtualTable* virtual_table, int* rp_array, int num_real_pages);
